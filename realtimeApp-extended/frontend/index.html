@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiveThread — Community Feed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://unpkg.com/@popperjs/core@2"></script>
+  <script src="https://unpkg.com/tippy.js@6"></script>
+  <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light-border.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ========== AUTH PAGE ========== -->
+  <div id="auth-section">
+    <div class="auth-bg">
+      <div class="auth-brand">
+        <h1 class="brand-name">LiveThread</h1>
+        <p class="brand-tagline">Connect, share, and engage with your community in real time.</p>
+        <div class="auth-features">
+          <div class="auth-feature-item">💬 Real-time comments</div>
+          <div class="auth-feature-item">👥 Follow people</div>
+          <div class="auth-feature-item">🔔 Live notifications</div>
+        </div>
+      </div>
+    </div>
+    <div class="auth-wrapper">
+      <div class="auth-card">
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <p class="form-title">Sign in</p>
+          <p class="form-sub">Welcome back — enter your details below</p>
+          <div class="input-group">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="login-email" placeholder="Email address" required />
+          </div>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="login-password" placeholder="Password" required />
+          </div>
+          <button type="submit" class="btn-primary">Continue</button>
+          <p class="auth-switch">No account? <a onclick="switchTabByName('register')">Create one</a></p>
+        </form>
+
+        <form id="register-form" class="hidden" onsubmit="handleRegister(event)">
+          <p class="form-title">Create account</p>
+          <p class="form-sub">Join Nexus and start connecting</p>
+          <div class="input-group">
+            <span class="input-icon">👤</span>
+            <input type="text" id="reg-username" placeholder="Username" required />
+          </div>
+          <div class="input-group">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="reg-email" placeholder="Email address" required />
+          </div>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="reg-password" placeholder="Password (min 6 chars)" required minlength="6" />
+          </div>
+          <button type="submit" class="btn-primary">Create Account</button>
+          <p class="auth-switch">Already have an account? <a onclick="switchTabByName('login')">Sign in</a></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== MAIN APP ========== -->
+  <div id="app-section" class="hidden">
+
+    <!-- LEFT SIDEBAR: user profile + nav -->
+    <aside class="left-panel" id="left-panel">
+      <div class="left-panel-top">
+
+        <!-- User profile card inside sidebar -->
+        <div class="sidebar-profile" onclick="openProfile()">
+          <img id="nav-avatar" src="https://api.dicebear.com/7.x/lorelei/svg?seed=default" class="avatar-sidebar" />
+          <div class="sidebar-profile-info">
+            <span id="nav-username" class="sidebar-username"></span>
+            <span class="sidebar-profile-hint">View profile</span>
+          </div>
+        </div>
+
+        <nav class="side-nav">
+          <button class="side-nav-item active" title="Feed">
+            <span class="side-nav-icon">🏠</span>
+            <span class="side-nav-label">Feed</span>
+          </button>
+          <button class="side-nav-item" onclick="toggleNotifications()" title="Notifications">
+            <span class="side-nav-icon">
+              🔔
+              <span id="notif-badge" class="badge hidden">0</span>
+            </span>
+            <span class="side-nav-label">Notifications</span>
+          </button>
+          <button id="admin-btn" onclick="openAdminPanel()" class="side-nav-item hidden" title="Admin">
+            <span class="side-nav-icon">🛡</span>
+            <span class="side-nav-label">Admin</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="left-panel-bottom">
+        <button class="dark-toggle" onclick="toggleDarkMode()" id="dark-toggle-btn" title="Toggle dark mode">
+          <span>🌙</span>
+          <span class="side-nav-label">Dark mode</span>
+        </button>
+        <button onclick="logout()" class="signout-btn">
+          <span>🚪</span>
+          <span class="side-nav-label">Sign out</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- CENTER: feed -->
+    <main class="center-panel">
+      <div class="feed-header">
+        <h2 class="feed-title">Community Feed</h2>
+      </div>
+
+      <div class="comment-box">
+        <img id="feed-avatar" src="https://api.dicebear.com/7.x/lorelei/svg?seed=default" class="avatar-sm" />
+        <div class="comment-input-wrap">
+          <textarea id="comment-input" placeholder="What's on your mind?" rows="2"></textarea>
+          <div class="comment-box-footer">
+            <span class="comment-hint">Share your thoughts with the community</span>
+            <button onclick="postComment()" class="btn-post">Post</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="comments-feed" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </main>
+
+    <!-- RIGHT PANEL: notifications + members -->
+    <aside class="right-panel" id="right-panel">
+
+      <!-- Mobile close button -->
+      <button class="right-panel-close" onclick="closeMobilePanels()">✕ Close</button>
+
+      <!-- Notifications inline panel -->
+      <div class="right-section" id="notif-panel">
+        <div class="right-section-header">
+          <span>Notifications</span>
+          <button onclick="markAllRead()" class="btn-text">Mark all read</button>
+        </div>
+        <div id="notif-list">
+          <div class="notif-empty">No notifications yet</div>
+        </div>
+      </div>
+
+      <!-- Members / follow list -->
+      <div class="right-section">
+        <div class="right-section-header">
+          <span>Members</span>
+        </div>
+        <div id="users-list"></div>
+      </div>
+
+    </aside>
+
+    <!-- Mobile top bar -->
+    <div class="mobile-topbar">
+      <span class="logo-mobile">LiveThread</span>
+      <div class="mobile-topbar-right">
+        <button class="btn-icon-mobile" onclick="toggleNotifications()">
+          🔔 <span id="notif-badge-mobile" class="badge hidden">0</span>
+        </button>
+        <button class="btn-icon-mobile" onclick="openProfile()">👥</button>
+        <button class="btn-icon-mobile" onclick="toggleMobileLeft()">☰</button>
+      </div>
+    </div>
+
+    <!-- Mobile overlays -->
+    <div class="panel-overlay" id="left-overlay" onclick="closeMobilePanels()"></div>
+    <div class="panel-overlay" id="right-overlay" onclick="closeMobilePanels()"></div>
+
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="profile-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeProfile()">✕</button>
+      <h2>My Profile</h2>
+      <img id="profile-pic" src="" class="avatar-lg" />
+      <p id="profile-username" class="profile-name"></p>
+      <p id="profile-email" class="profile-email"></p>
+      <div class="profile-stats">
+        <span id="profile-following">0 following</span>
+        <span id="profile-followers">0 followers</span>
+      </div>
+      <textarea id="profile-bio" placeholder="Your bio..." rows="3"></textarea>
+      <input type="text" id="profile-pic-url" placeholder="Picture URL" />
+      <button onclick="saveProfile()" class="btn-primary">Save</button>
+    </div>
+  </div>
+
+  <!-- Admin Modal -->
+  <div id="admin-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeAdminPanel()">✕</button>
+      <h2>🛡 Pending Approvals</h2>
+      <div id="admin-pending-list"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
