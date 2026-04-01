@@ -1,4 +1,4 @@
-const API = 'http://localhost:3000/api';
+const API = 'http://localhost:4000/api';
 const STATIC_MODE = false;
 let token = localStorage.getItem('token');
 let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
@@ -260,7 +260,7 @@ function connectSocket() {
     return;
   }
 
-  socket = io('http://localhost:3000');
+  socket = io('http://localhost:4000');
 
   socket.on('connect', () => {
     socket.emit('register', currentUser._id);
